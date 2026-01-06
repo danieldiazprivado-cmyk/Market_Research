@@ -62,6 +62,30 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
     
+    .feature-header {
+        background: #238636;
+        color: white;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+        font-weight: 800;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+    }
+
+    .feature-item {
+        background: rgba(48, 54, 61, 0.3);
+        border: 1px solid #30363d;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        font-size: 0.85rem;
+        color: #c9d1d9;
+    }
+
     .card-title {
         color: #58a6ff;
         font-weight: 700;
@@ -122,7 +146,7 @@ menu_clean = menu.split(" ")[1] if " " in menu else menu
 
 # --- HELPERS ---
 def draw_card(title, content, color="#58a6ff"):
-    content_str = str(content).strip() if content and str(content).strip() else "Data not yet populated..."
+    content_str = str(content).strip() if content and str(content).strip() else "..."
     st.markdown(f"""
     <div class="glass-card">
         <div class="card-title" style="border-left-color: {color}; color: {color};">{title}</div>
@@ -155,25 +179,15 @@ if menu_clean == "Product":
     
     if data:
         p_name = find_data_under(data, "Product/Service Name", 0, 1)
-        producer = find_data_under(data, "Producer Information", 0, 1)
-        history = find_data_under(data, "Product/Service History", 0, 1)
-        keywords = find_data_under(data, "Product Keywords", 0, 1)
         
-        # Core info
-        c1, c2 = st.columns(2, gap="large")
-        with c1:
-            st.markdown("### 🏢 Core Identity")
-            draw_card("Product Name", p_name)
-        with c2:
-            st.markdown("### 📜 Background")
-            draw_card("History & Origin", history)
-            # Keywords and Producer moved further down or inside cards? 
-            # Let's keep a tight top layout and expand below.
-
+        # Identity Header
+        st.markdown(f"### 📍 Project Target: {p_name}")
         st.divider()
-        st.markdown("### ⚡ Strategic Mechanism (Features, Benefits & Meaning)")
+
+        # 3-COLUMN MECHANISM (MATCHING GOOGLE SHEET)
+        st.markdown("### ⚙️ CORE MECHANISM (Sheet 1)")
         
-        # Collect ALL features rows
+        # Find Features row
         feat_idx = -1
         for i, row in enumerate(data):
             if "Features" in str(row): 
@@ -181,30 +195,37 @@ if menu_clean == "Product":
                 break
         
         if feat_idx != -1:
-            # Iterate rows until we hit a new section (like "Producer" which usually follows)
-            # or an empty row
+            col_f, col_b, col_m = st.columns(3, gap="medium")
+            
+            with col_f: st.markdown('<div class="feature-header">FEATURES</div>', unsafe_allow_html=True)
+            with col_b: st.markdown('<div class="feature-header">BENEFITS</div>', unsafe_allow_html=True)
+            with col_m: st.markdown('<div class="feature-header">MEANING</div>', unsafe_allow_html=True)
+
+            # Collect items
             for i in range(feat_idx + 1, len(data)):
                 row = data[i]
                 if not any(row) or "Producer" in str(row[0]): break
                 
-                f = row[0] if len(row) > 0 else "..."
-                b = row[2] if len(row) > 2 else "..."
-                m = row[4] if len(row) > 4 else "..."
+                f = row[0] if len(row) > 0 else ""
+                b = row[2] if len(row) > 2 else ""
+                m = row[4] if len(row) > 4 else ""
                 
-                if f and f != "...":
-                    with st.expander(f"🔹 {f}", expanded=False):
-                        col_f1, col_f2 = st.columns(2)
-                        with col_f1:
-                            st.markdown(f"**Benefit:** {b}")
-                        with col_f2:
-                            st.markdown(f"**Meaning:** *{m}*")
+                if f:
+                    with col_f: st.markdown(f'<div class="feature-item">{f}</div>', unsafe_allow_html=True)
+                    with col_b: st.markdown(f'<div class="feature-item">{b}</div>', unsafe_allow_html=True)
+                    with col_m: st.markdown(f'<div class="feature-item">{m}</div>', unsafe_allow_html=True)
 
         st.divider()
-        st.markdown("### 🏷️ Additional Metadata")
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
+        st.markdown("### 🏷️ Strategic Context")
+        history = find_data_under(data, "Product/Service History", 0, 1)
+        keywords = find_data_under(data, "Product Keywords", 0, 1)
+        producer = find_data_under(data, "Producer Information", 0, 1)
+
+        c_low1, c_low2 = st.columns(2)
+        with c_low1:
+            draw_card("History & Origin", history)
+        with c_low2:
             draw_card("Producer Information", producer)
-        with col_m2:
             draw_card("Market Keywords", keywords)
 
     else:
@@ -286,4 +307,4 @@ elif menu_clean == "Cohorts":
 st.sidebar.divider()
 if st.sidebar.button("📥 EXPORT PDF REPORT"):
     st.toast("Generating Research Document...")
-st.sidebar.markdown("<br><p style='text-align: center; color: #484f58; font-size: 0.6rem;'>MAPs RESEARCH PROTOCOL V3.5</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<br><p style='text-align: center; color: #484f58; font-size: 0.6rem;'>MAPs RESEARCH PROTOCOL V4.0</p>", unsafe_allow_html=True)
