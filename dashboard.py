@@ -180,6 +180,51 @@ st.markdown("""
         border-radius: 12px !important;
     }
 
+    /* Style st.expander to look like the premium green headers */
+    .stExpander {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin-bottom: 20px !important;
+    }
+
+    .stExpander > details {
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .stExpander > details > summary {
+        background: linear-gradient(135deg, #238636, #2ea043) !important;
+        color: white !important;
+        padding: 12px !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        list-style: none !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3) !important;
+        margin-bottom: 10px !important;
+    }
+
+    .stExpander > details > summary:hover {
+        transform: scale(1.02);
+        box-shadow: 0 6px 16px rgba(35, 134, 54, 0.5) !important;
+    }
+
+    .stExpander > details > summary > span > div > p {
+        font-size: 0.85rem !important;
+        letter-spacing: 1.5px !important;
+        text-transform: uppercase !important;
+        margin: 0 !important;
+        color: white !important;
+    }
+
+    /* Remove default dropdown arrow if possible or style it */
+    .stExpander > details > summary svg {
+        fill: white !important;
+    }
+
     /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #0d1117; }
@@ -257,18 +302,30 @@ if menu_clean == "Product":
         
         if feat_idx != -1:
             col_f, col_b, col_m = st.columns(3, gap="medium")
-            with col_f: st.markdown('<div class="feature-header">FEATURES</div>', unsafe_allow_html=True)
-            with col_b: st.markdown('<div class="feature-header">BENEFITS</div>', unsafe_allow_html=True)
-            with col_m: st.markdown('<div class="feature-header">MEANING</div>', unsafe_allow_html=True)
-
+            
+            # Prepare data lists
+            features_list, benefits_list, meaning_list = [], [], []
             for i in range(feat_idx + 1, len(data)):
                 row = data[i]
                 if not any(row) or "Producer" in str(row[0]): break
                 f, b, m = (row[0] if len(row) > 0 else ""), (row[2] if len(row) > 2 else ""), (row[4] if len(row) > 4 else "")
                 if f:
-                    with col_f: st.markdown(f'<div class="feature-item">{f}</div>', unsafe_allow_html=True)
-                    with col_b: st.markdown(f'<div class="feature-item">{b}</div>', unsafe_allow_html=True)
-                    with col_m: st.markdown(f'<div class="feature-item">{m}</div>', unsafe_allow_html=True)
+                    features_list.append(f)
+                    benefits_list.append(b)
+                    meaning_list.append(m)
+
+            with col_f:
+                with st.expander("🟢 FEATURES", expanded=True):
+                    for item in features_list:
+                        st.markdown(f'<div class="feature-item">{item}</div>', unsafe_allow_html=True)
+            with col_b:
+                with st.expander("🟢 BENEFITS", expanded=True):
+                    for item in benefits_list:
+                        st.markdown(f'<div class="feature-item">{item}</div>', unsafe_allow_html=True)
+            with col_m:
+                with st.expander("🟢 MEANING", expanded=True):
+                    for item in meaning_list:
+                        st.markdown(f'<div class="feature-item">{item}</div>', unsafe_allow_html=True)
 
         st.divider()
         st.markdown("### 🏷️ STRATEGIC CONTEXT")
