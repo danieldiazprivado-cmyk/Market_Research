@@ -81,7 +81,6 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* Focus on active item */
     [data-testid="stSidebar"] [data-testid="stWidgetLabel"] {
         font-size: 0.8rem !important;
         color: #58a6ff !important;
@@ -107,19 +106,6 @@ st.markdown("""
         border: 1px solid rgba(88, 166, 255, 0.3);
         transform: translateY(-4px);
         box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-    }
-
-    .feature-header {
-        background: linear-gradient(135deg, #238636, #2ea043);
-        color: white;
-        padding: 12px;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: 700;
-        margin-bottom: 20px;
-        font-size: 0.85rem;
-        letter-spacing: 1.5px;
-        box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3);
     }
 
     .feature-item {
@@ -220,9 +206,29 @@ st.markdown("""
         color: white !important;
     }
 
-    /* Remove default dropdown arrow if possible or style it */
     .stExpander > details > summary svg {
         fill: white !important;
+    }
+
+    /* Attributes List for Competitors */
+    .comp-attribute {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    }
+    .comp-label {
+        color: #8b949e;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        width: 30%;
+    }
+    .comp-value {
+        color: #e6edf3;
+        font-size: 0.95rem;
+        width: 68%;
+        text-align: right;
     }
 
     /* Custom Scrollbar */
@@ -303,7 +309,6 @@ if menu_clean == "Product":
         if feat_idx != -1:
             col_f, col_b, col_m = st.columns(3, gap="medium")
             
-            # Prepare data lists
             features_list, benefits_list, meaning_list = [], [], []
             for i in range(feat_idx + 1, len(data)):
                 row = data[i]
@@ -339,6 +344,9 @@ if menu_clean == "Product":
             draw_card("Producer Information", producer)
             draw_card("Market Keywords", keywords)
 
+    else:
+        st.warning("No data found in 'Product' sheet.")
+
 elif menu_clean == "Competitors":
     st.markdown("<div class='gradient-header'>GLOBAL COMPETITORS</div>", unsafe_allow_html=True)
     data = fetch_raw_values("Competitors")
@@ -352,28 +360,73 @@ elif menu_clean == "Competitors":
         draw_card("General Conclusion", conc, color="#bc8cff")
 
         st.divider()
-        st.markdown("### ⚔️ DETAILED BENCHMARKING")
-        names_row = -1
-        for i, row in enumerate(data):
-            if "Competitor 1" in str(row): names_row = i; break
-        if names_row != -1:
-            cols = st.columns(5)
-            for i in range(5):
-                with cols[i]:
-                    c_idx = i + 2
-                    name = data[names_row+1][c_idx] if len(data) > names_row+1 and len(data[names_row+1]) > c_idx else f"Comp {i+1}"
-                    promise = find_in_any_col(data, "Main Marketing Promise", 0, c_idx)
-                    price = find_in_any_col(data, "Price and payment terms", 0, c_idx)
+        st.markdown("### ⚔️ INTERACTIVE BENCHMARKING")
+        
+        # Attribute rows we want to extract
+        attributes = [
+            "Name", "Social Media", "Product", "Link", "Hook", 
+            "Main Marketing Promise", "Unique mechanism", "Unique selling proposition",
+            "General marketing statements", "Evidence", "Deliverables / Features",
+            "Price and payment terms", "Bonus that includes", "Risk reversal / Guarantees",
+            "Additional observations"
+        ]
+        
+        # Build competitor profiles
+        competitors = []
+        for i in range(5):
+            c_idx = i + 2 # Columns C, D, E, F, G
+            profile = {}
+            for attr in attributes:
+                val = find_in_any_col(data, attr, 0, c_idx)
+                if attr == "Name" and not val:
+                    val = find_in_any_col(data, "Competitor " + str(i+1), 1, 0) # Backwards fallback if name is not found by title
+                profile[attr] = val if val else "..."
+            
+            # Special check for Name if still "..."
+            if profile["Name"] == "...":
+                # Try finding "Competitor 1" header and looking 1 row down
+                for r_idx, row in enumerate(data):
+                    if f"Competitor {i+1}" in str(row):
+                        profile["Name"] = data[r_idx+1][c_idx] if r_idx+1 < len(data) else f"Comp {i+1}"
+                        break
+            
+            competitors.append(profile)
+
+        # Tab Navigation for Competitors
+        comp_tabs = st.tabs([c["Name"] for c in competitors])
+        
+        for i, tab in enumerate(comp_tabs):
+            with tab:
+                c = competitors[i]
+                col_left, col_right = st.columns([1, 1], gap="large")
+                
+                with col_left:
                     st.markdown(f"""
-                    <div class="glass-card" style="min-height: 280px; text-align: center; border-bottom: 4px solid #58a6ff;">
-                        <h4 style="color: #58a6ff; font-size: 0.9rem; margin-bottom: 20px;">{name if name else '...'}</h4>
-                        <p style="font-size: 0.7rem; color: #8b949e; letter-spacing: 1px;">PROMISE</p>
-                        <p style="font-size: 0.85rem; height: 90px; overflow: hidden; color: #c9d1d9;">{promise if promise else '...'}</p>
-                        <div style="background: rgba(126, 231, 135, 0.1); padding: 8px; border-radius: 8px; margin-top: 15px;">
-                            <span style="color: #7ee787; font-weight: 800;">{price if price else 'N/A'}</span>
-                        </div>
+                    <div class="glass-card" style="border-top: 4px solid #58a6ff;">
+                        <h3 style="color: #58a6ff; font-size: 1.2rem; margin-bottom: 25px;">Profile: {c['Name']}</h3>
+                        <div class="comp-attribute"><div class="comp-label">Social</div><div class="comp-value">{c['Social Media']}</div></div>
+                        <div class="comp-attribute"><div class="comp-label">Product</div><div class="comp-value">{c['Product']}</div></div>
+                        <div class="comp-attribute"><div class="comp-label">Link</div><div class="comp-value"><a href="{c['Link']}" style="color: #58a6ff;">{c['Link']}</a></div></div>
+                        <div class="comp-attribute" style="border: none;"><div class="comp-label">Price</div><div class="comp-value" style="color: #7ee787; font-weight: 800; font-size: 1.1rem;">{c['Price and payment terms']}</div></div>
                     </div>
                     """, unsafe_allow_html=True)
+                    
+                    st.markdown("#### ⚡ Marketing Hook & Promise")
+                    draw_card("Main Hook", c["Hook"], color="#bc8cff")
+                    draw_card("Core Promise", c["Main Marketing Promise"], color="#7ee787")
+
+                with col_right:
+                    st.markdown("#### 🛠️ Unique Mechanism & USP")
+                    draw_card("Mechanism", c["Unique mechanism"])
+                    draw_card("USP", c["Unique selling proposition"])
+                    
+                    with st.expander("🔍 Strategic Details", expanded=True):
+                        st.markdown(f"**Marketing Statements:** {c['General marketing statements']}")
+                        st.markdown(f"**Evidence/Proof:** {c['Evidence']}")
+                        st.markdown(f"**Deliverables:** {c['Deliverables / Features']}")
+                        st.markdown(f"**Bonus:** {c['Bonus that includes']}")
+                        st.markdown(f"**Guarantees:** {c['Risk reversal / Guarantees']}")
+                        st.markdown(f"**Observations:** *{c['Additional observations']}*")
 
 elif menu_clean == "Angles":
     st.markdown("<div class='gradient-header'>SALES ANGLES</div>", unsafe_allow_html=True)
@@ -408,4 +461,4 @@ elif menu_clean in ["Cohorts", "Targeted"]:
 st.sidebar.divider()
 if st.sidebar.button("📥 EXPORT STRATEGY PDF"):
     st.toast("Protocol Initialized... Exporting Data...")
-st.sidebar.markdown("<br><p style='text-align: center; color: #484f58; font-size: 0.6rem; letter-spacing: 2px;'>MARKET RESEARCH PROTOCOL V5.0<br>POWERED BY ANTIGRAVITY AI</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<br><p style='text-align: center; color: #484f58; font-size: 0.6rem; letter-spacing: 2px;'>MARKET RESEARCH PROTOCOL V5.2<br>POWERED BY ANTIGRAVITY AI</p>", unsafe_allow_html=True)
