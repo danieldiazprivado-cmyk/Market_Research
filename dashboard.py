@@ -69,7 +69,16 @@ st.markdown("""
 # --- AUTH & DATA FETCH ---
 @st.cache_resource
 def get_gspread_client():
-    creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
+    # Try Streamlit Secrets first (for Cloud Deployment)
+    if "gcp_service_account" in st.secrets:
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=SCOPES
+        )
+    # Fallback to local file (for local development)
+    else:
+        creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
+    
     return gspread.authorize(creds)
 
 def fetch_data(sheet_name):
