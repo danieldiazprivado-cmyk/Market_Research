@@ -181,11 +181,11 @@ if menu_clean == "Product":
         p_name = find_data_under(data, "Product/Service Name", 0, 1)
         
         # Identity Header
-        st.markdown(f"### 📍 Project Target: {p_name}")
+        st.markdown(f"### 📍 PRODUCT NAME: {p_name}")
         st.divider()
 
         # 3-COLUMN MECHANISM (MATCHING GOOGLE SHEET)
-        st.markdown("### ⚙️ CORE MECHANISM (Sheet 1)")
+        st.markdown("### ⚙️ CORE MECHANISM")
         
         # Find Features row
         feat_idx = -1
