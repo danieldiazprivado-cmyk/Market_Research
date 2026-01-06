@@ -1,0 +1,10 @@
+streamlit
+gspread
+gspread-dataframe
+pandas
+fpdf2
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+oauth2client
