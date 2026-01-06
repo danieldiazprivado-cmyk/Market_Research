@@ -89,7 +89,6 @@ st.markdown("""
         font-family: 'Orbitron', sans-serif;
     }
 
-    /* Dataframe Styling */
     .stDataFrame {
         border: 1px solid #30363d !important;
         border-radius: 8px !important;
@@ -139,6 +138,16 @@ def find_data_under(data, search_text, col_idx=0, offset=1):
                 return val
     return ""
 
+def find_in_any_col(data, txt, offset_row=0, offset_col=0):
+    for i, row in enumerate(data):
+        for j, cell in enumerate(row):
+            if txt.lower() in str(cell).lower():
+                target_row = i + offset_row
+                target_col = j + offset_col
+                if target_row < len(data) and target_col < len(data[target_row]):
+                    return data[target_row][target_col]
+    return ""
+
 # --- NAVIGATION LOGIC ---
 if menu_clean == "Product":
     st.markdown("<div class='gradient-header'>PRODUCT STRATEGY</div>", unsafe_allow_html=True)
@@ -150,32 +159,56 @@ if menu_clean == "Product":
         history = find_data_under(data, "Product/Service History", 0, 1)
         keywords = find_data_under(data, "Product Keywords", 0, 1)
         
-        # Features Table row
-        feat_idx = -1
-        for i, row in enumerate(data):
-            if "Features" in str(row): feat_idx = i; break
-        
-        features, benefits, meaning = "...", "...", "..."
-        if feat_idx != -1 and feat_idx + 1 < len(data):
-            r = data[feat_idx+1]
-            features = r[0] if len(r) > 0 else "..."
-            benefits = r[2] if len(r) > 2 else "..."
-            meaning = r[4] if len(r) > 4 else "..."
-
+        # Core info
         c1, c2 = st.columns(2, gap="large")
         with c1:
             st.markdown("### 🏢 Core Identity")
             draw_card("Product Name", p_name)
-            draw_card("Unique Promise", features, color="#7ee787")
-            draw_card("Main Benefits", benefits, color="#bc8cff")
-            draw_card("Brand Meaning", meaning, color="#bc8cff")
         with c2:
             st.markdown("### 📜 Background")
             draw_card("History & Origin", history)
-            draw_card("Market Keywords", keywords)
+            # Keywords and Producer moved further down or inside cards? 
+            # Let's keep a tight top layout and expand below.
+
+        st.divider()
+        st.markdown("### ⚡ Strategic Mechanism (Features, Benefits & Meaning)")
+        
+        # Collect ALL features rows
+        feat_idx = -1
+        for i, row in enumerate(data):
+            if "Features" in str(row): 
+                feat_idx = i
+                break
+        
+        if feat_idx != -1:
+            # Iterate rows until we hit a new section (like "Producer" which usually follows)
+            # or an empty row
+            for i in range(feat_idx + 1, len(data)):
+                row = data[i]
+                if not any(row) or "Producer" in str(row[0]): break
+                
+                f = row[0] if len(row) > 0 else "..."
+                b = row[2] if len(row) > 2 else "..."
+                m = row[4] if len(row) > 4 else "..."
+                
+                if f and f != "...":
+                    with st.expander(f"🔹 {f}", expanded=False):
+                        col_f1, col_f2 = st.columns(2)
+                        with col_f1:
+                            st.markdown(f"**Benefit:** {b}")
+                        with col_f2:
+                            st.markdown(f"**Meaning:** *{m}*")
+
+        st.divider()
+        st.markdown("### 🏷️ Additional Metadata")
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
             draw_card("Producer Information", producer)
+        with col_m2:
+            draw_card("Market Keywords", keywords)
+
     else:
-        st.warning("No data found in 'Product' sheet. Please run the research scripts.")
+        st.warning("No data found in 'Product' sheet.")
 
 elif menu_clean == "Competitors":
     st.markdown("<div class='gradient-header'>GLOBAL COMPETITORS</div>", unsafe_allow_html=True)
@@ -183,21 +216,6 @@ elif menu_clean == "Competitors":
     
     if data:
         st.markdown("### 🔍 Strategic Gap Analysis")
-        # Find PES rows
-        pes_p = find_data_under(data, "PROBLEM (Market Gaps)", 0, 0) # Headings are B24, B26, B27
-        # Wait, PES is in Col B (index 1)
-        pes_p = find_data_under(data, "PROBLEM", 0, 0) # Searching in Col A? No, let's look at all cols
-        
-        def find_in_any_col(data, txt, offset_row=0, offset_col=0):
-            for i, row in enumerate(data):
-                for j, cell in enumerate(row):
-                    if txt.lower() in str(cell).lower():
-                        target_row = i + offset_row
-                        target_col = j + offset_col
-                        if target_row < len(data) and target_col < len(data[target_row]):
-                            return data[target_row][target_col]
-            return ""
-
         p = find_in_any_col(data, "PROBLEM", 0, 1)
         e = find_in_any_col(data, "ENEMY", 0, 1)
         s = find_in_any_col(data, "SOLUTION", 0, 1)
@@ -211,19 +229,16 @@ elif menu_clean == "Competitors":
 
         st.divider()
         st.markdown("### ⚔️ Detailed Benchmarking")
-        # Competitor row index 4 (R5)
         names_row = -1
         for i, row in enumerate(data):
             if "Competitor 1" in str(row): names_row = i; break
         
         if names_row != -1:
-            # Names index 2, 3, 4, 5, 6 (C, D, E, F, G)
             cols = st.columns(5)
             for i in range(5):
                 with cols[i]:
                     c_idx = i + 2
                     name = data[names_row+1][c_idx] if len(data) > names_row+1 and len(data[names_row+1]) > c_idx else f"Comp {i+1}"
-                    # Find Promise, Price under relevant headers
                     promise = find_in_any_col(data, "Main Marketing Promise", 0, c_idx)
                     price = find_in_any_col(data, "Price and payment terms", 0, c_idx)
                     
@@ -237,8 +252,6 @@ elif menu_clean == "Competitors":
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
-    else:
-        st.warning("No data found in 'Competitors' sheet.")
 
 elif menu_clean == "Angles":
     st.markdown("<div class='gradient-header'>SALES ANGLES</div>", unsafe_allow_html=True)
@@ -273,4 +286,4 @@ elif menu_clean == "Cohorts":
 st.sidebar.divider()
 if st.sidebar.button("📥 EXPORT PDF REPORT"):
     st.toast("Generating Research Document...")
-st.sidebar.markdown("<br><p style='text-align: center; color: #484f58; font-size: 0.6rem;'>MAPs RESEARCH PROTOCOL V3.0</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<br><p style='text-align: center; color: #484f58; font-size: 0.6rem;'>MAPs RESEARCH PROTOCOL V3.5</p>", unsafe_allow_html=True)
