@@ -26,7 +26,6 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Outfit:wght@300;400;600&display=swap');
     
-    /* Reset and Global Styles */
     .stApp {
         background-color: #0d1117 !important;
         color: #e6edf3 !important;
@@ -48,13 +47,11 @@ st.markdown("""
         letter-spacing: 2px;
     }
 
-    /* Sidebar Styling */
     [data-testid="stSidebar"] {
         background-color: #010409 !important;
         border-right: 1px solid #30363d;
     }
     
-    /* Card Component */
     .glass-card {
         background-color: #161b22 !important;
         padding: 24px;
@@ -82,7 +79,6 @@ st.markdown("""
         color: #c9d1d9;
     }
 
-    /* Gradient Header */
     .gradient-header {
         background: linear-gradient(90deg, #58a6ff, #bc8cff);
         -webkit-background-clip: text;
@@ -93,21 +89,11 @@ st.markdown("""
         font-family: 'Orbitron', sans-serif;
     }
 
-    /* Table/DF Customization */
-    .stDataFrame, .stTable {
-        background: #161b22 !important;
+    /* Dataframe Styling */
+    .stDataFrame {
         border: 1px solid #30363d !important;
         border-radius: 8px !important;
     }
-
-    /* Column Spacing */
-    [data-testid="column"] {
-        padding: 10px;
-    }
-
-    /* Hide default Streamlit elements */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -129,11 +115,7 @@ def fetch_raw_values(sheet_name):
 # --- SIDEBAR ---
 with st.sidebar:
     st.markdown("<h2 style='font-size: 1.1rem; color: #58a6ff;'>💎 RESEARCH PROTOCOL</h2>", unsafe_allow_html=True)
-    menu = st.radio(
-        "",
-        ["🏠 Product", "⚔️ Competitors", "🎯 Sales Angles", "🧠 Awareness", "💎 Differentials", "🛑 Objections", "👥 Cohorts"],
-        index=0
-    )
+    menu = st.radio("", ["🏠 Product", "⚔️ Competitors", "🎯 Sales Angles", "🧠 Awareness", "💎 Differentials", "🛑 Objections", "👥 Cohorts"], index=0)
     st.divider()
     search_query = st.text_input("🔍 Filter Analysis", placeholder="Type keywords...")
 
@@ -141,8 +123,7 @@ menu_clean = menu.split(" ")[1] if " " in menu else menu
 
 # --- HELPERS ---
 def draw_card(title, content, color="#58a6ff"):
-    # Ensure content is string and not empty
-    content_str = str(content) if content else "..."
+    content_str = str(content).strip() if content and str(content).strip() else "Data not yet populated..."
     st.markdown(f"""
     <div class="glass-card">
         <div class="card-title" style="border-left-color: {color}; color: {color};">{title}</div>
@@ -150,85 +131,118 @@ def draw_card(title, content, color="#58a6ff"):
     </div>
     """, unsafe_allow_html=True)
 
+def find_data_under(data, search_text, col_idx=0, offset=1):
+    for i, row in enumerate(data):
+        if len(row) > col_idx and search_text.lower() in str(row[col_idx]).lower():
+            if i + offset < len(data):
+                val = data[i+offset][col_idx] if len(data[i+offset]) > col_idx else ""
+                return val
+    return ""
+
 # --- NAVIGATION LOGIC ---
 if menu_clean == "Product":
     st.markdown("<div class='gradient-header'>PRODUCT STRATEGY</div>", unsafe_allow_html=True)
     data = fetch_raw_values("Product")
     
-    if len(data) > 33:
-        # MAPS Data extraction using audit row/col structure
-        # Column B is Index 0 (After dropna? No, we used get_all_values, so A=0, B=1, ...)
-        # Actually in get_all_values, Column A=0, B=1, C=2, D=3, E=4
-        p_name = data[3][1] if len(data[3]) > 1 else "N/A" # Row 4, Col B
-        features = data[7][1] if len(data[7]) > 1 else "N/A" # Row 8, Col B
-        benefits = data[7][2] if len(data[7]) > 2 else "N/A" # Row 8, Col C
-        meaning = data[7][4] if len(data[7]) > 4 else "N/A" # Row 8, Col E
-        producer = data[25][1] if len(data[25]) > 1 else "N/A" # Row 26, Col B
-        history = data[29][1] if len(data[29]) > 1 else "N/A" # Row 30, Col B
-        keywords = data[33][1] if len(data[33]) > 1 else "N/A" # Row 34, Col B
+    if data:
+        p_name = find_data_under(data, "Product/Service Name", 0, 1)
+        producer = find_data_under(data, "Producer Information", 0, 1)
+        history = find_data_under(data, "Product/Service History", 0, 1)
+        keywords = find_data_under(data, "Product Keywords", 0, 1)
+        
+        # Features Table row
+        feat_idx = -1
+        for i, row in enumerate(data):
+            if "Features" in str(row): feat_idx = i; break
+        
+        features, benefits, meaning = "...", "...", "..."
+        if feat_idx != -1 and feat_idx + 1 < len(data):
+            r = data[feat_idx+1]
+            features = r[0] if len(r) > 0 else "..."
+            benefits = r[2] if len(r) > 2 else "..."
+            meaning = r[4] if len(r) > 4 else "..."
 
         c1, c2 = st.columns(2, gap="large")
         with c1:
             st.markdown("### 🏢 Core Identity")
             draw_card("Product Name", p_name)
-            draw_card("Unique Promise (Features)", features, color="#7ee787")
+            draw_card("Unique Promise", features, color="#7ee787")
             draw_card("Main Benefits", benefits, color="#bc8cff")
-            draw_card("Brand Meaning", meaning, color="#ff7b72")
+            draw_card("Brand Meaning", meaning, color="#bc8cff")
         with c2:
             st.markdown("### 📜 Background")
             draw_card("History & Origin", history)
             draw_card("Market Keywords", keywords)
             draw_card("Producer Information", producer)
+    else:
+        st.warning("No data found in 'Product' sheet. Please run the research scripts.")
 
 elif menu_clean == "Competitors":
     st.markdown("<div class='gradient-header'>GLOBAL COMPETITORS</div>", unsafe_allow_html=True)
     data = fetch_raw_values("Competitors")
     
-    # Analysis Boxes Row 24(Index 23), 26(25), 27(26), 29(28)
-    if len(data) > 28:
+    if data:
         st.markdown("### 🔍 Strategic Gap Analysis")
-        col1, col2, col3 = st.columns(3)
-        with col1: draw_card("Problem (Market Gaps)", data[23][1] if len(data[23]) > 1 else "...")
-        with col2: draw_card("Enemy (Friction)", data[25][1] if len(data[25]) > 1 else "...", color="#ff7b72")
-        with col3: draw_card("Solution", data[26][1] if len(data[26]) > 1 else "...", color="#7ee787")
+        # Find PES rows
+        pes_p = find_data_under(data, "PROBLEM (Market Gaps)", 0, 0) # Headings are B24, B26, B27
+        # Wait, PES is in Col B (index 1)
+        pes_p = find_data_under(data, "PROBLEM", 0, 0) # Searching in Col A? No, let's look at all cols
         
-        st.markdown("### 🎯 conclusion general")
-        draw_card("Market Summary", data[28][1] if len(data[28]) > 1 else "...", color="#bc8cff")
+        def find_in_any_col(data, txt, offset_row=0, offset_col=0):
+            for i, row in enumerate(data):
+                for j, cell in enumerate(row):
+                    if txt.lower() in str(cell).lower():
+                        target_row = i + offset_row
+                        target_col = j + offset_col
+                        if target_row < len(data) and target_col < len(data[target_row]):
+                            return data[target_row][target_col]
+            return ""
 
-    st.divider()
-    st.markdown("### ⚔️ Detailed Benchmarking")
-    # Competitor Names in Row 5 (Index 4), Columns C, D, E, F, G (Index 2-6)
-    if len(data) > 4:
-        comp_names = [data[4][i] for i in range(2, 7) if len(data[4]) > i]
-        comp_promises = []
-        comp_prices = []
+        p = find_in_any_col(data, "PROBLEM", 0, 1)
+        e = find_in_any_col(data, "ENEMY", 0, 1)
+        s = find_in_any_col(data, "SOLUTION", 0, 1)
+        conc = find_in_any_col(data, "CONCLUSION", 0, 1)
         
-        # Row 11: Promise (Index 10), Row 13: Price (Index 12)
-        if len(data) > 10: comp_promises = [data[10][i] for i in range(2, 7) if len(data[10]) > i]
-        if len(data) > 12: comp_prices = [data[12][i] for i in range(2, 7) if len(data[12]) > i]
+        col1, col2, col3 = st.columns(3)
+        with col1: draw_card("Problem (Market Gaps)", p)
+        with col2: draw_card("Enemy (Friction)", e, color="#ff7b72")
+        with col3: draw_card("Solution", s, color="#7ee787")
+        draw_card("General Conclusion", conc, color="#bc8cff")
+
+        st.divider()
+        st.markdown("### ⚔️ Detailed Benchmarking")
+        # Competitor row index 4 (R5)
+        names_row = -1
+        for i, row in enumerate(data):
+            if "Competitor 1" in str(row): names_row = i; break
         
-        cols = st.columns(len(comp_names))
-        for i, col in enumerate(cols):
-            with col:
-                name = comp_names[i] if i < len(comp_names) and comp_names[i] else f"Competitor {i+1}"
-                promise = comp_promises[i] if i < len(comp_promises) and comp_promises[i] else "No data"
-                price = comp_prices[i] if i < len(comp_prices) and comp_prices[i] else "N/A"
-                
-                st.markdown(f"""
-                <div class="glass-card" style="min-height: 250px; text-align: center; border-top: 3px solid #58a6ff;">
-                    <h4 style="color: #58a6ff; margin-bottom: 20px;">{name}</h4>
-                    <p style="font-size: 0.75rem; color: #8b949e; margin-bottom: 5px;">PROMISE</p>
-                    <p style="font-size: 0.8rem; height: 80px; overflow: hidden; color: #c9d1d9;">{promise}</p>
-                    <div style="background: rgba(126, 231, 135, 0.1); padding: 5px; border-radius: 6px; margin-top: 15px;">
-                        <span style="color: #7ee787; font-weight: 700; font-size: 0.9rem;">{price}</span>
+        if names_row != -1:
+            # Names index 2, 3, 4, 5, 6 (C, D, E, F, G)
+            cols = st.columns(5)
+            for i in range(5):
+                with cols[i]:
+                    c_idx = i + 2
+                    name = data[names_row+1][c_idx] if len(data) > names_row+1 and len(data[names_row+1]) > c_idx else f"Comp {i+1}"
+                    # Find Promise, Price under relevant headers
+                    promise = find_in_any_col(data, "Main Marketing Promise", 0, c_idx)
+                    price = find_in_any_col(data, "Price and payment terms", 0, c_idx)
+                    
+                    st.markdown(f"""
+                    <div class="glass-card" style="min-height: 250px; text-align: center; border-top: 3px solid #58a6ff;">
+                        <h4 style="color: #58a6ff; font-size: 1rem;">{name if name else '...'}</h4>
+                        <p style="font-size: 0.7rem; color: #8b949e;">PROMISE</p>
+                        <p style="font-size: 0.8rem; height: 80px; overflow: hidden;">{promise if promise else '...'}</p>
+                        <div style="background: rgba(126, 231, 135, 0.1); padding: 5px; border-radius: 6px;">
+                            <span style="color: #7ee787; font-weight: 700;">{price if price else 'N/A'}</span>
+                        </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+    else:
+        st.warning("No data found in 'Competitors' sheet.")
 
 elif menu_clean == "Angles":
     st.markdown("<div class='gradient-header'>SALES ANGLES</div>", unsafe_allow_html=True)
-    raw_data = fetch_raw_values("Sales Angles")
-    df = pd.DataFrame(raw_data)
+    df = pd.DataFrame(fetch_raw_values("Sales Angles"))
     t1, t2 = st.tabs(["🏛️ Market Standards", "⚡ Disruptive Angles"])
     with t1: st.dataframe(df.iloc[:10], use_container_width=True)
     with t2: st.dataframe(df.iloc[10:], use_container_width=True)
@@ -246,28 +260,17 @@ elif menu_clean == "Objections":
 elif menu_clean == "Cohorts":
     st.markdown("<div class='gradient-header'>TARGET COHORTS</div>", unsafe_allow_html=True)
     data = fetch_raw_values("Cohorts")
-    df = pd.DataFrame(data)
-    cols = st.columns(3)
-    # Mapping columns B, E, H (Index 1, 4, 7)
-    for i, col in enumerate(cols):
-        with col:
-            idx = [1, 4, 7][i]
-            # Avatar Name in Row 3 (Index 2)
-            title = df.iloc[2, idx] if len(df) > 2 and idx < len(df.columns) else f"Avatar {i+1}"
-            st.markdown(f"""
-            <div class="glass-card" style="border-top: 4px solid #bc8cff;">
-                <h3 style="color: #bc8cff; font-size: 1.1rem; margin-bottom: 15px;">{title}</h3>
-                <hr style="border-color: #30363d;">
-            </div>
-            """, unsafe_allow_html=True)
-            # Show the profile data
-            st.dataframe(df.iloc[3:, [idx]].dropna(), use_container_width=True)
+    if data:
+        df = pd.DataFrame(data)
+        cols = st.columns(3)
+        for i, col in enumerate(cols):
+            with col:
+                idx = [1, 4, 7][i]
+                title = df.iloc[2, idx] if len(df) > 2 and idx < len(df.columns) else f"Avatar {i+1}"
+                st.markdown(f"<div class='glass-card' style='border-top: 4px solid #bc8cff;'><h3 style='color: #bc8cff; font-size: 1.1rem;'>{title}</h3></div>", unsafe_allow_html=True)
+                st.dataframe(df.iloc[3:, [idx]].dropna(), use_container_width=True)
 
-# --- FOOTER ---
-st.divider()
+st.sidebar.divider()
 if st.sidebar.button("📥 EXPORT PDF REPORT"):
     st.toast("Generating Research Document...")
-    time.sleep(1)
-    st.sidebar.success("Ready! (Simulation)")
-
-st.sidebar.markdown("<br><br><br><p style='text-align: center; color: #484f58; font-size: 0.65rem;'>MAPs RESEARCH PROTOCOL V2.5<br>DEVELOPED BY ANTIGRAVITY AI</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<br><p style='text-align: center; color: #484f58; font-size: 0.6rem;'>MAPs RESEARCH PROTOCOL V3.0</p>", unsafe_allow_html=True)
