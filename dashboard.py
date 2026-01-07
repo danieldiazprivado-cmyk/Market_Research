@@ -242,8 +242,15 @@ st.markdown("""
 # --- AUTH & DATA FETCH ---
 @st.cache_resource
 def get_gspread_client():
-    if "gcp_service_account" in st.secrets:
-        creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
+    creds_info = None
+    try:
+        if "gcp_service_account" in st.secrets:
+            creds_info = st.secrets["gcp_service_account"]
+    except:
+        pass
+
+    if creds_info:
+        creds = Credentials.from_service_account_info(creds_info, scopes=SCOPES)
     else:
         creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
     return gspread.authorize(creds)
